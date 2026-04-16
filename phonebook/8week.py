@@ -1,6 +1,4 @@
 import psycopg2
-import csv
-
 
 def get_connection():
     return psycopg2.connect(
@@ -11,116 +9,170 @@ def get_connection():
         port="5432"
     )
 
-
-def create_table():
+def setup_database():
     conn = get_connection()
     cursor = conn.cursor()
+
+    # Создание таблицы
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS phonebook (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(50),
-            phone VARCHAR(20)
-        )
+    CREATE TABLE IF NOT EXISTS phonebook (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) UNIQUE,
+        phone VARCHAR(20)
+    );
     """)
-    conn.commit()
-    cursor.close()
-    conn.close()
 
-
-def insert_from_csv(filename):
-    conn = get_connection()
-    cursor = conn.cursor()
-    with open(filename, "r") as f:
-        reader = csv.reader(f)
-        for row in reader:
-            cursor.execute("INSERT INTO phonebook (name, phone) VALUES (%s, %s)", (row[0], row[1]))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-
-def insert_from_console():
-    name = input("Введите имя: ")
-    phone = input("Введите телефон: ")
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO phonebook (name, phone) VALUES (%s, %s)", (name, phone))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-
-def update_contact():
-    name = input("Введите имя контакта для обновления: ")
-    new_phone = input("Введите новый телефон: ")
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE phonebook SET phone=%s WHERE name=%s", (new_phone, name))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-
-def search_contacts():
-    pattern = input("Введите часть имени или телефона: ")
-    conn = get_connection()
-    cursor = conn.cursor()
+    # Функция поиска по шаблону
     cursor.execute("""
-        SELECT * FROM phonebook
-        WHERE name LIKE %s OR phone LIKE %s
-    """, ('%' + pattern + '%', '%' + pattern + '%'))
-    print(cursor.fetchall())
-    cursor.close()
-    conn.close()
+    CREATE OR REPLACE FUNCTION get_contacts_by_pattern(p text)
+    RETURNS TABLE(id INT, name VARCHAR, phone VARCHAR) AS $$
+    BEGIN
+        RETURN QUERY
+        SELECT pb.id, pb.name, pb.phone
+        FROM phonebook pb
+        WHERE pb.name ILIKE '%' || p || '%'
+           OR pb.phone ILIKE '%' || p || '%';
+    END;
+    $$ LANGUAGE plpgsql;
+    """)
 
-def get_contacts():
-    limit = int(input("Сколько записей показать: "))
-    offset = int(input("С какого смещения начать: "))
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM phonebook LIMIT %s OFFSET %s", (limit, offset))
-    print(cursor.fetchall())
-    cursor.close()
-    conn.close()
+    # Процедура вставки/обновления
+    cursor.execute("""
+    CREATE OR REPLACE PROCEDURE upsert_contact(p_name VARCHAR, p_phone VARCHAR)
+    LANGUAGE plpgsql AS $$
+    BEGIN
+        IF EXISTS (SELECT 1 FROM phonebook WHERE name = p_name) THEN
+            UPDATE phonebook SET phone = p_phone WHERE name = p_name;
+        ELSE
+            INSERT INTO phonebook(name, phone) VALUES(p_name, p_phone);
+        END IF;
+    END;
+    $$;
+    """)
 
+    # Процедура массовой вставки
+    cursor.execute("""
+    CREATE OR REPLACE PROCEDURE insert_many_contacts(p_names TEXT[], p_phones TEXT[])
+    LANGUAGE plpgsql AS $$
+    DECLARE
+        i INT;
+        bad_data TEXT[] := '{}';
+    BEGIN
+        FOR i IN 1..array_length(p_names, 1) LOOP
+            IF p_phones[i] ~ '^[0-9]+$' THEN
+                IF EXISTS (SELECT 1 FROM phonebook WHERE name = p_names[i]) THEN
+                    UPDATE phonebook SET phone = p_phones[i] WHERE name = p_names[i];
+                ELSE
+                    INSERT INTO phonebook(name, phone) VALUES(p_names[i], p_phones[i]);
+                END IF;
+            ELSE
+                bad_data := array_append(bad_data, p_names[i] || ':' || p_phones[i]);
+            END IF;
+        END LOOP;
+        RAISE NOTICE 'Некорректные данные: %', bad_data;
+    END;
+    $$;
+    """)
 
-def delete_contact():
-    choice = input("Удалить по (1) имени или (2) телефону: ")
-    conn = get_connection()
-    cursor = conn.cursor()
-    if choice == "1":
-        name = input("Введите имя: ")
-        cursor.execute("DELETE FROM phonebook WHERE name=%s", (name,))
-    else:
-        phone = input("Введите телефон: ")
-        cursor.execute("DELETE FROM phonebook WHERE phone=%s", (phone,))
+    # Функция с пагинацией
+    cursor.execute("""
+    CREATE OR REPLACE FUNCTION get_contacts_paginated(p_limit INT, p_offset INT)
+    RETURNS TABLE(id INT, name VARCHAR, phone VARCHAR) AS $$
+    BEGIN
+        RETURN QUERY
+        SELECT pb.id, pb.name, pb.phone
+        FROM phonebook pb
+        ORDER BY pb.id
+        LIMIT p_limit OFFSET p_offset;
+    END;
+    $$ LANGUAGE plpgsql;
+    """)
+
+    # Процедура удаления
+    cursor.execute("""
+    CREATE OR REPLACE PROCEDURE delete_contact(p_name VARCHAR DEFAULT NULL, p_phone VARCHAR DEFAULT NULL)
+    LANGUAGE plpgsql AS $$
+    BEGIN
+        IF p_name IS NOT NULL THEN
+            DELETE FROM phonebook WHERE name = p_name;
+        ELSIF p_phone IS NOT NULL THEN
+            DELETE FROM phonebook WHERE phone = p_phone;
+        ELSE
+            RAISE NOTICE 'Нужно указать имя или телефон для удаления';
+        END IF;
+    END;
+    $$;
+    """)
+
     conn.commit()
     cursor.close()
     conn.close()
 
+# --- Меню PhoneBook ---
+def start():
+    setup_database()
+    while True:
+        print("\n--- PhoneBook Menu ---")
+        print("1. Добавить/обновить контакт")
+        print("2. Массовая вставка")
+        print("3. Найти по шаблону")
+        print("4. Показать с пагинацией")
+        print("5. Удалить контакт")
+        print("6. Показать все контакты")
+        print("7. Выйти")
 
+        choice = input("Выберите действие: ")
 
-print("\n--- PhoneBook Menu ---")
-print("1. Добавить контакт из CSV")
-print("2. Добавить контакт вручную")
-print("3. Обновить контакт")
-print("4. Найти контакт по шаблону")
-print("5. Показать контакты очередно")
-print("6. Удалить контакт")
-print("7. Выйти")
-choice = input("Выберите действие: ")
+        conn = get_connection()
+        cursor = conn.cursor()
 
-if choice == "1":
-    insert_from_csv("contacts.csv")
-elif choice == "2":
-    insert_from_console()
-elif choice == "3":
-    update_contact()
-elif choice == "4":
-    search_contacts()
-elif choice == "5":
-    get_contacts()
-elif choice == "6":
-    delete_contact()
-elif choice == "7":
-    print("Выход из программы")
+        if choice == "1":
+            name = input("Введите имя: ")
+            phone = input("Введите телефон: ")
+            cursor.execute("CALL upsert_contact(%s, %s)", (name, phone))
+            conn.commit()
+            print("Контакт добавлен/обновлён.")
+
+        elif choice == "2":
+            names = input("Введите имена через запятую: ").split(",")
+            phones = input("Введите телефоны через запятую: ").split(",")
+            cursor.execute("CALL insert_many_contacts(%s, %s)", (names, phones))
+            conn.commit()
+            print("Массовая вставка выполнена.")
+
+        elif choice == "3":
+            pattern = input("Введите шаблон поиска: ")
+            cursor.execute("SELECT * FROM get_contacts_by_pattern(%s)", (pattern,))
+            print(cursor.fetchall())
+
+        elif choice == "4":
+            limit = int(input("Сколько записей показать: "))
+            offset = int(input("С какой позиции начать: "))
+            cursor.execute("SELECT * FROM get_contacts_paginated(%s, %s)", (limit, offset))
+            print(cursor.fetchall())
+
+        elif choice == "5":
+            mode = input("Удалить по (1) имени или (2) телефону: ")
+            if mode == "1":
+                name = input("Введите имя: ")
+                cursor.execute("CALL delete_contact(p_name := %s)", (name,))
+            else:
+                phone = input("Введите телефон: ")
+                cursor.execute("CALL delete_contact(p_phone := %s)", (phone,))
+            conn.commit()
+            print("Контакт удалён.")
+
+        elif choice == "6":
+            cursor.execute("SELECT * FROM phonebook ORDER BY id")
+            print(cursor.fetchall())
+
+        elif choice == "7":
+            cursor.close()
+            conn.close()
+            break
+
+        cursor.close()
+        conn.close()
+
+if __name__ == "__main__":
+    start()
