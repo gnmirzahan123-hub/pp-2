@@ -1,47 +1,47 @@
 import pygame
 import datetime
+import os
 
-pygame.init()
-screen = pygame.display.set_mode((600, 600))
-pygame.display.set_caption("Mickey Mouse Clock")
+class MickeyClock:
+    def __init__(self, screen_width, screen_height):
+        self.width = screen_width
+        self.height = screen_height
+        self.center = (screen_width // 2, screen_height // 2)
+        self.start_time = datetime.datetime.now()
 
+        assets_path = os.path.join(os.path.dirname(__file__), "images")
 
-right_hand = pygame.image.load("right_hand.png").convert_alpha() 
-left_hand = pygame.image.load("left_hand.png").convert_alpha()   
-left_hand=pygame.transform.scale(left_hand,(200,200))
+        self.bg = pygame.image.load(os.path.join(assets_path, "mickey.png"))
+        self.bg = pygame.transform.scale(self.bg, (self.width, self.height))
 
+        self.hand_min_img = pygame.image.load(os.path.join(assets_path, "right_hand.png"))
+        self.hand_sec_img = pygame.image.load(os.path.join(assets_path, "left_hand.png"))
 
-center = (300, 300)
-
-clock = pygame.time.Clock()
-done = False
-
-while not done:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            done = True
-
-   
-    now = datetime.datetime.now()
-    minutes = now.minute
-    seconds = now.second
-
-  
-    angle_minutes = -6 * minutes
-    angle_seconds = -6 * seconds
-
-  
-    rotated_right = pygame.transform.rotate(right_hand, angle_minutes)
-    rotated_left = pygame.transform.rotate(left_hand, angle_seconds)
+        self.min_offset = 60
 
 
-    rect_right = rotated_right.get_rect(center=center)
-    rect_left = rotated_left.get_rect(center=center)
+        self.sec_offset = -60
+
+    def get_angles(self, current_time):
+
+        elapsed = (current_time - self.start_time).total_seconds()
+        sec_angle = -(elapsed % 60) * 6 + self.sec_offset
 
 
-    screen.fill((255, 255, 255))  
-    screen.blit(rotated_right, rect_right)
-    screen.blit(rotated_left, rect_left)
+        min_angle = -(current_time.minute * 6 + current_time.second * 0.1) + self.min_offset
 
-    pygame.display.flip()
-    clock.tick(1)  
+        return sec_angle, min_angle
+
+    def draw(self, surface):
+        current_time = datetime.datetime.now()
+        surface.blit(self.bg, (0, 0))
+
+        sec_angle, min_angle = self.get_angles(current_time)
+
+        self._blit_rotate(surface, self.hand_min_img, min_angle)
+        self._blit_rotate(surface, self.hand_sec_img, sec_angle)
+
+    def _blit_rotate(self, surface, image, angle):
+        rotated = pygame.transform.rotate(image, angle)
+        rect = rotated.get_rect(center=self.center)
+        surface.blit(rotated, rect)
