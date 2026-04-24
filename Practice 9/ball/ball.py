@@ -1,5 +1,4 @@
 import pygame
-import sys
 
 
 pygame.init()
@@ -55,4 +54,4 @@ while running:
     clock.tick(30)
 
 pygame.quit()
-sys.exit()
+

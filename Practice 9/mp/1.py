@@ -1,5 +1,4 @@
 import pygame
-import sys
 
 
 pygame.init()
@@ -56,4 +55,3 @@ while running:
         display_info(playlist[current_index], pos)
 
 pygame.quit()
-sys.exit()

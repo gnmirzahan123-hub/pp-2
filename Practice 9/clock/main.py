@@ -1,5 +1,5 @@
 import pygame
-import sys
+
 from clock import MickeyClock
 
 def main():
@@ -23,7 +23,7 @@ def main():
         timer.tick(60)
 
     pygame.quit()
-    sys.exit()
+
 
 if __name__ == "__main__":
     main()
