@@ -34,7 +34,7 @@ PALETTE = [
     (255, 105, 180),     # Pink
     (139, 90,  43),      # Brown
     (128, 128, 128),     # Grey
-    (255, 255, 255),     # White (eraser colour)
+    (255, 255, 255),     # White 
 ]
 
 # Brush size options (in pixels)
@@ -54,16 +54,16 @@ TOOL_ERASER      = "eraser"
 
 # Tool display names for the toolbar buttons
 TOOL_LABELS = {
-    TOOL_PENCIL:    "✏ Pencil",
-    TOOL_LINE:      "╱ Line",
-    TOOL_RECT:      "▭ Rectangle",
-    TOOL_SQUARE:    "■ Square",
-    TOOL_CIRCLE:    "○ Circle",
-    TOOL_RTRIANGLE: "◺ R-Triangle",
-    TOOL_EQTRIANGLE:"△ Eq-Triangle",
-    TOOL_RHOMBUS:   "◇ Rhombus",
-    TOOL_FILL:      "🪣 Fill",
-    TOOL_ERASER:    "⬜ Eraser",
+    TOOL_PENCIL:    " Pencil",
+    TOOL_LINE:      " Line",
+    TOOL_RECT:      " Rectangle",
+    TOOL_SQUARE:    " Square",
+    TOOL_CIRCLE:    " Circle",
+    TOOL_RTRIANGLE: " R-Triangle",
+    TOOL_EQTRIANGLE:" Eq-Triangle",
+    TOOL_RHOMBUS:   " Rhombus",
+    TOOL_FILL:      " Fill",
+    TOOL_ERASER:    " Eraser",
 }
 
 # Order tools appear in the toolbar (top → bottom)
@@ -77,25 +77,16 @@ TOOL_ORDER = [
 ]
 
 
-# GEOMETRY HELPERS────
+# GEOMETRY HELPERS
 
 
 def points_for_right_triangle(x1, y1, x2, y2):
-    """
-    Build a right-angle triangle from two corner points.
-    Right angle is at bottom-left; the 90° legs are axis-aligned.
-      P0 = top-left  (x1, y1)
-      P1 = bottom-left (x1, y2)   ← right angle here
-      P2 = bottom-right (x2, y2)
-    """
+
     return [(x1, y1), (x1, y2), (x2, y2)]
 
 
 def points_for_equilateral_triangle(x1, y1, x2, y2):
-    """
-    Build an equilateral triangle whose base spans from x1 to x2
-    at the lower y (y2), and apex is centred above.
-    """
+
     bx1 = min(x1, x2)
     bx2 = max(x1, x2)
     by  = max(y1, y2)           # base y (bottom)
@@ -107,11 +98,7 @@ def points_for_equilateral_triangle(x1, y1, x2, y2):
 
 
 def points_for_rhombus(x1, y1, x2, y2):
-    """
-    Build a rhombus (diamond) inscribed in the bounding box
-    (x1,y1) → (x2,y2).  The 4 vertices are the midpoints of
-    each edge of the bounding box.
-    """
+
     lx = min(x1, x2); rx = max(x1, x2)
     ty = min(y1, y2); by = max(y1, y2)
     cx = (lx + rx) / 2
@@ -120,10 +107,7 @@ def points_for_rhombus(x1, y1, x2, y2):
 
 
 def flood_fill(surface, pos, fill_colour):
-    """
-    Simple iterative flood fill starting from pixel `pos` on `surface`.
-    Replaces all connected pixels of the same original colour with `fill_colour`.
-    """
+
     target_colour = surface.get_at(pos)[:3]    # ignore alpha
     if target_colour == fill_colour:
         return    # nothing to do

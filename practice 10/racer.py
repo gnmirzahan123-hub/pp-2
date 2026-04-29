@@ -33,7 +33,6 @@ small  = pygame.font.SysFont("Arial", 14, bold=True)
 
 
 def random_lane_x(obj_width: int) -> int:
-    """Return the left-edge X of a randomly chosen lane."""
     lane = random.randint(0, 2)
     return ROAD_LEFT + lane * LANE_W + (LANE_W - obj_width) // 2
 
@@ -191,12 +190,12 @@ def main():
     enemy_timer    = 0
     enemy_interval = 80
     coin_timer     = 0
-    coin_interval  = random.randint(100, 180)   # coins appear randomly
+    coin_interval  = random.randint(100, 180)   # coins  randomly
 
     while True:
         clock.tick(FPS)
 
-        # ── Events ────────────────────────────────────────────────────────────
+        #Events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
@@ -204,13 +203,13 @@ def main():
                 if event.key == pygame.K_r: main(); return
                 if event.key == pygame.K_q: pygame.quit(); sys.exit()
 
-        #Update (only when alive)
+        #Update only when alive
         if not game_over:
             keys = pygame.key.get_pressed()
             player.move(keys)
             road.update()
 
-            # Difficulty scales with score (faster every 5 points)
+            # Difficulty scales with score faster every 5 points
             speed = base_speed + score // 5
             road.speed = 5 + score // 8
 
@@ -228,7 +227,7 @@ def main():
                 coin_timer    = 0
                 coin_interval = random.randint(90, 200)
 
-            # Move enemies; check collisions
+            # Move enemies check collisions
             for en in enemies[:]:
                 en.update()
                 if en.off_screen():

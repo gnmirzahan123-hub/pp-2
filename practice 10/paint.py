@@ -1,5 +1,3 @@
-
-
 import pygame
 import sys
 import math
@@ -21,7 +19,7 @@ LT_GRAY = (230, 230, 230)
 MID_GRY = (160, 160, 160)
 DK_GRAY = (80,  80,  80 )
 
-# Colour palette shown as swatches in the toolbar
+# Colour palette
 PALETTE = [
     (0,   0,   0  ),   # black
     (255, 255, 255),   # white
@@ -45,7 +43,7 @@ RECTANGLE = "rectangle"
 CIRCLE    = "circle"
 ERASER    = "eraser"
 TOOLS     = [PENCIL, RECTANGLE, CIRCLE, ERASER]
-ICONS     = ["✏ Pencil", "▭ Rect", "◯ Circle", "⌫ Eraser"]
+ICONS     = ["Pencil", " Rect", " Circle", "Eraser"]
 
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 pygame.display.set_caption("Paint")
@@ -61,7 +59,7 @@ class PaintApp:
         self.canvas = pygame.Surface((SCREEN_W, CANVAS_H))
         self.canvas.fill(WHITE)
 
-        self.color       = BLACK    # active drawing colour
+        self.color       = BLACK    # drawing colour
         self.tool        = PENCIL   # active tool
         self.brush_size  = 5        # pencil radius
         self.eraser_size = 20       # eraser radius
@@ -92,7 +90,7 @@ class PaintApp:
             self._toolbar_click(mx, my)
             return
 
-        # Convert screen → canvas coordinates
+        # Convert screen - canvas coordinates
         cp = (mx, my - CANVAS_TOP)
         self.drawing   = True
         self.start_pos = cp
@@ -162,7 +160,6 @@ class PaintApp:
             pygame.draw.rect(surface, self.color, rect, 2)
 
         elif self.tool == CIRCLE:
-            # Centre = midpoint of the drag diagonal; radius = half diagonal
             cx = (x1 + x2) // 2
             cy = (y1 + y2) // 2
             radius = int(math.hypot(x2 - x1, y2 - y1) / 2)
@@ -186,14 +183,13 @@ class PaintApp:
                 return
 
         # 3. Brush size  –  +  buttons
-        # _draw_size_control(surface, x=550, y=6) draws buttons at x+78=628 and x+104=654
+        
         if 628 <= mx <= 650 and 6 <= my <= 28:
             self.brush_size = max(1, self.brush_size - 1)
         elif 654 <= mx <= 676 and 6 <= my <= 28:
             self.brush_size = min(40, self.brush_size + 1)
 
         # 4. Eraser size  –  +
-        # _draw_size_control(surface, x=550, y=36) draws buttons at x+78=628 and x+104=654
         if 628 <= mx <= 650 and 36 <= my <= 58:
             self.eraser_size = max(5, self.eraser_size - 2)
         elif 654 <= mx <= 676 and 36 <= my <= 58:

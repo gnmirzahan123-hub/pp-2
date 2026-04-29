@@ -78,7 +78,7 @@ class Snake:
         new_head = (hx + self.direction[0], hy + self.direction[1])
         self.body.insert(0, new_head)
         if self._grow:
-            self._grow = False   # don't remove tail → snake gets longer
+            self._grow = False   # don't remove tail - snake gets longer
         else:
             self.body.pop()
 
@@ -139,7 +139,7 @@ def draw_hud(surface, score: int, level: int, foods_this_level: int):
 
     sc  = font.render(f"Score: {score}", True, WHITE)
     lv  = font.render(f"Level {level}",  True, GOLD)
-    nxt = font.render(f"Next ↑: {FOODS_PER_LEVEL - foods_this_level % FOODS_PER_LEVEL}",
+    nxt = font.render(f"Next : {FOODS_PER_LEVEL - foods_this_level % FOODS_PER_LEVEL}",
                       True, GREEN)
     surface.blit(sc,  (12, HUD_H//2 - sc.get_height()//2))
     surface.blit(lv,  (SCREEN_W//2 - lv.get_width()//2, HUD_H//2 - lv.get_height()//2))
@@ -165,7 +165,7 @@ def draw_overlay(surface, title: str, sub: str = ""):
         s = font.render(sub, True, YELLOW)
         surface.blit(s, (SCREEN_W//2 - s.get_width()//2, SCREEN_H//2))
 
-    hint = font.render("R – restart   Q – quit", True, (180, 180, 180))
+    hint = font.render("R  restart   Q  quit", True, (180, 180, 180))
     surface.blit(hint, (SCREEN_W//2 - hint.get_width()//2, SCREEN_H//2 + 50))
 
 
